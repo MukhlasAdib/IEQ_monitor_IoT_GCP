@@ -7,7 +7,6 @@ import jwt
 import paho.mqtt.client as mqtt
 import json
 
-
 ### Common Variables
 jwt_alg = 'RS256'
 ca_certs = 'roots.pem'
@@ -98,12 +97,19 @@ class ieq_sim():
         self.spl = self.progress(self.spl,self.spl_sim)
 
     def gen_json(self):
+        now = datetime.datetime.now()
+        nowDate = now.strftime("%Y-%m-%d")
+        nowTime = now.strftime("%H:%M:%S")
         ieq_dict = {
             'temp': self.temp,
             'rh': self.rh,
             'lux': self.lux,
             'co2': self.co2,
-            'spl': self.spl 
+            'spl': self.spl,
+            'date': nowDate,
+            'time': nowTime,
+            'devID': 'DEV001',
+            'gwyID': 'GWY001' 
         }
         jsonStr = json.dumps(ieq_dict)
         self.update()

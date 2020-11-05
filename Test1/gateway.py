@@ -43,11 +43,13 @@ def renew_filename():
     now = datetime.datetime.now()
     fdate = now.strftime("%Y%m%d")
     num = 1
-    for file in os.listdir():
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    for file in os.listdir('log/'):
         if file.endswith('_test1_log.txt') and file.startswith(fdate):
             fnum = file.split('_')[1]
             num = int(fnum) + 1
-    fname = fdate + '_' + str(num) + '_test1_log.txt'
+    fname = 'log/' + fdate + '_' + str(num) + '_test1_log.txt'
 renew_filename()
 
 def create_jwt(project_id, private_key_file, algorithm):

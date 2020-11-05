@@ -6,6 +6,7 @@ import time
 import jwt
 import paho.mqtt.client as mqtt
 import json
+import numpy as np
 
 ### Common Variables
 jwt_alg = 'RS256'
@@ -80,48 +81,38 @@ def add_log(msg):
 ### IEQ Data generator
 class ieq_sim():
     def __init__(self):
-        self.temp_sim = {'min':0,'max':100,'delta':10}
-        self.rh_sim = {'min':0,'max':100,'delta':10}
-        self.lux_sim = {'min':0,'max':100,'delta':10}
-        self.co2_sim = {'min':0,'max':100,'delta':10}
-        self.spl_sim = {'min':0,'max':100,'delta':10}
-        self.temp = self.temp_sim['min']
-        self.rh = self.rh_sim['min']
-        self.lux = self.lux_sim['min']
-        self.co2 = self.co2_sim['min']
-        self.spl = self.spl_sim['min']
+        self.temp_sim = {'min':23.00,'max':30.00,'stdev':0.20}
+        self.rh_sim = {'min':50.00,'max':80.00,'stdev':2.00}
+        self.lux_sim = {'min':200,'max':300,'stdev':15}
+        self.co2_sim = {'min':250,'max':500,'stdev':40}
+        self.spl_sim = {'min':25,'max':45,'stdev':2}
+        self.f = 2 * np.pi * 1/86400
 
-    def progress(self,param,sim):
+    def calc(self,sim):
         # Calculate the new IEQ parameter
-        param = param + sim['delta']
-        if param > sim['max']: param = sim['min']
-        return param
-
-    def update(self):
-        # Update all of IEQ parameters
-        self.temp = self.progress(self.temp,self.temp_sim)
-        self.rh = self.progress(self.rh,self.rh_sim)
-        self.lux = self.progress(self.lux,self.lux_sim)
-        self.co2 = self.progress(self.co2,self.co2_sim)
-        self.spl = self.progress(self.spl,self.spl_sim)
+        now = datetime.datetime.now()
+        midnight = now.replace(hour=0,minute=0,second=0,microsecond=0)
+        today_second = (now - midnight).seconds
+        val = (sim['max']+sim['min'])/2 - np.cos(self.f*today_second)*(sim['max']-sim['min'])/2
+        val = np.random.normal(val,sim['stdev'])
+        return val
 
     def gen_json(self):
         now = datetime.datetime.now()
         nowDate = now.strftime("%Y-%m-%d")
         nowTime = now.strftime("%H:%M:%S")
         ieq_dict = {
-            'temp': self.temp,
-            'rh': self.rh,
-            'lux': self.lux,
-            'co2': self.co2,
-            'spl': self.spl,
+            'temp': round(self.calc(self.temp_sim),2),
+            'rh': round(self.calc(self.rh_sim)),
+            'lux': int(self.calc(self.lux_sim)),
+            'co2': int(self.calc(self.co2_sim)),
+            'spl': round(self.calc(self.spl_sim),2),
             'date': nowDate,
             'time': nowTime,
             'devID': gw_DEVID,
             'gwyID': GWYID 
         }
         jsonStr = json.dumps(ieq_dict)
-        self.update()
         return jsonStr
 
 ### Handle connection to GCP MQTT
@@ -203,7 +194,6 @@ class mqtt_gcp():
         token = create_jwt(project_id,keyFile,jwt_alg)
         token = str(token)[2:-1]
         payload = '{\"authorization\":\"'+ token +'\"}'
-        print(payload)
         topic = f'/devices/{ID}/attach'
         res = self.client.publish(topic,payload,1)
         logMsg = f'Sending attachment request for {ID} with message ID {res.mid}'

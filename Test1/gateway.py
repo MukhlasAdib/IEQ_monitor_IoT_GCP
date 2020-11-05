@@ -24,6 +24,11 @@ gw_registyID = 'tugas_scada_tim7_testReg'
 gw_deviceID = 'tugas_scada_tim7_testDev1'
 pub_gcp_topic = f'/devices/{gw_deviceID}/events'
 
+### Variables for Local Connection
+local_hostname = '192.168.100.6'
+local_port = 1883
+data_topic = 'gw1/pub'
+
 ### Common functions
 def renew_filename():
     # Create new filename for logging
@@ -116,9 +121,9 @@ class ieq_sim():
         return jsonStr
 
 ### Handle connection to GCP MQTT
-class gateway_gcp():
+class mqtt_gcp():
     def __init__(self):
-        self.isConnect_gcp = False
+        self.isConnect = False
         # Set MQTT Client
         self.client = mqtt.Client(client_id = f'projects/{project_id}/locations/{gcp_region}/registries/{gw_registyID}/devices/{gw_deviceID}')
         self.client.username_pw_set(
@@ -128,21 +133,21 @@ class gateway_gcp():
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_publish = self.on_publish
-        add_log('Initiated')
+        add_log('Connection to GCP Initiated')
 
     def connect(self):
         # Connect to GCP
         self.client.connect(gcp_hostname,gcp_port)
         add_log('Trying to connect to GCP')
         self.client.loop_start()
-        return self.wait_connect_gcp()
+        self.wait_connect()
 
-    def wait_connect_gcp(self,timeout = 10):
+    def wait_connect(self,timeout = 10):
         total_time = 0
-        while not self.isConnect_gcp and total_time < timeout:
+        while not self.isConnect and total_time < timeout:
             time.sleep(1)
             total_time += 1
-        if not self.isConnect_gcp:
+        if not self.isConnect:
             logMsg = 'Cannot connect to GCP MQTT' 
             add_log(logMsg)
             return False
@@ -151,26 +156,26 @@ class gateway_gcp():
 
     def send_data(self,data):
         # Send data to GCP handle
-        while not self.isConnect_gcp: self.connect()
+        while not self.isConnect: self.connect()
         res = self.client.publish(pub_gcp_topic, data, qos=1)
-        logMsg = f'Publishing (ID {res.mid}) : \n' + str(data)
+        logMsg = f'Publishing to GCP (ID {res.mid}) : \n' + str(data)
         add_log(logMsg)
 
     def on_connect(self, unused_client, unused_userdata, unused_flags, rc):
         # Function when device connected
         logMsg = 'Connected to GCP MQTT: \n' + error_str(rc) 
-        self.isConnect_gcp = True
+        self.isConnect = True
         add_log(logMsg)
     
     def on_disconnect(self, unused_client, unused_userdata, rc):
         # Function when device disconnected
-        self.isConnect_gcp = False
+        self.isConnect = False
         logMsg = 'Disconnected from GCP MQTT: \n' + error_str(rc)
         add_log(logMsg)
 
     def on_publish(self, unused_client, unused_userdata, mid):
         # Function when receive PUBACK
-        logMsg = f'Publish (ID {mid}) successful'
+        logMsg = f'Publish ro GCP (ID {mid}) successful'
         add_log(logMsg)
 
     def stop(self):
@@ -178,12 +183,75 @@ class gateway_gcp():
         self.client.disconnect()
         self.client.loop_stop()
 
+### Handle connection to local MQTT
+class mqtt_local():
+    def __init__(self):
+        self.isConnect = False
+        # Set MQTT Client
+        self.client = mqtt.Client()
+        self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
+        self.client.on_message = self.on_gw1_pub_msg
+        self.client.on_subscribe = self.on_subscribe
+        self.client.message_callback_add(data_topic,self.on_gw1_pub_msg)
+        add_log('Connection to Local MQTT Initiated')
+
+    def connect(self):
+        # Connect to GCP
+        self.client.connect(local_hostname,local_port)
+        add_log('Trying to connect to Local MQTT')
+        self.client.loop_start()
+        subs_id = self.client.subscribe(data_topic,1)
+        add_log('Subscription request sent for topic ' + data_topic + ' ID ' + str(subs_id[1]))
+        self.wait_connect()
+
+    def wait_connect(self,timeout = 10):
+        total_time = 0
+        while not self.isConnect and total_time < timeout:
+            time.sleep(1)
+            total_time += 1
+        if not self.isConnect:
+            logMsg = 'Cannot connect to Local MQTT' 
+            add_log(logMsg)
+            return False
+        else:
+            return True
+
+    def on_connect(self, unused_client, unused_userdata, unused_flags, rc):
+        # Function when device connected
+        logMsg = 'Connected to Local MQTT: \n' + error_str(rc) 
+        self.isConnect = True
+        add_log(logMsg)
+    
+    def on_subscribe(self,client, unused_userdata, mid, granted_qos):
+        # Function when subscription request responded
+        add_log('Respond for subscription request ID ' + str(mid) + '\n QoS ' + str(granted_qos[0]))
+
+    def on_disconnect(self, unused_client, unused_userdata, rc):
+        # Function when device disconnected
+        self.isConnect = False
+        logMsg = 'Disconnected from Local MQTT: \n' + error_str(rc)
+        add_log(logMsg)
+
+    def on_gw1_pub_msg(self, unused_client, unused_userdata, message):
+        # Function when a new publish occured in /gw1/pub
+        logMsg = "A new publish on local topic " + str(message.topic) + "\n"
+        logMsg = logMsg + str(message.payload)
+        add_log(logMsg)
+
+    def stop(self):
+        add_log('Stopping Local MQTT client')
+        self.client.disconnect()
+        self.client.loop_stop()
+
 ### Main function
 def main():
-    gcp = gateway_gcp()
+    gcp = mqtt_gcp()
+    loc = mqtt_local()
     ieq = ieq_sim()
-    try:        
+    try:
         gcp.connect()
+        loc.connect()
         while True:
             data = ieq.gen_json()
             gcp.send_data(data)
@@ -194,6 +262,7 @@ def main():
 
     finally:
         gcp.stop()
+        loc.stop()
 
 if __name__ == '__main__':
     main()

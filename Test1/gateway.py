@@ -19,6 +19,7 @@ GWYID = 'GWY001'
 dev_keyDir = 'device_key/'
 dev_metaDir = 'device_list/'
 attachedDev = {}
+sampling_freq = 15
 
 ### Variables for GCP connection
 gw_private = 'rsa_private.pem'
@@ -32,7 +33,8 @@ gateway_id = 'tugas_scada_tim7_gwy001'
 ### Variables for Local Connection
 local_hostname = 'localhost'
 local_port = 1883
-data_topic = 'gw1/pub'
+local_data_topic = 'gw1/pub'
+local_state_topic = 'gw1/state'
 
 ### Common functions
 def renew_filename():
@@ -128,6 +130,8 @@ class mqtt_gcp():
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_publish = self.on_publish
+        self.client.on_subscribe = self.on_subscribe
+        self.client.on_message = self.on_unknown_msg
         add_log('Connection to GCP Initiated')
 
     def connect(self):
@@ -139,6 +143,9 @@ class mqtt_gcp():
         add_log('Trying to connect to GCP')
         self.client.loop_start()
         self.wait_connect()
+        gw_config_topic = f'/devices/{gateway_id}/config'
+        subs_id = self.client.subscribe(gw_config_topic,1)
+        add_log('GCP subscription request sent for topic ' + gw_config_topic + ' ID ' + str(subs_id[1]))
 
     def wait_connect(self,timeout = 10):
         total_time = 0
@@ -198,9 +205,23 @@ class mqtt_gcp():
         payload = '{\"authorization\":\"'+ token +'\"}'
         topic = f'/devices/{ID}/attach'
         res = self.client.publish(topic,payload,1)
-        logMsg = f'Sending attachment request for {ID} with message ID {res.mid}'
+        logMsg = f'Sending GCP attachment request for {ID} with message ID {res.mid}'
         add_log(logMsg)
         time.sleep(3)
+        dev_config_topic = f'/devices/{ID}/config'
+        subs_id = self.client.subscribe(dev_config_topic,1)
+        self.client.message_callback_add(dev_config_topic,self.on_config_msg)
+        add_log('GCP subscription request sent for topic ' + dev_config_topic + ' ID ' + str(subs_id[1]))
+
+    def publish_state(self,num,state):
+        if num in attachedDev:
+            state_topic = f'/devices/{attachedDev[num]}/state'
+            res = self.client.publish(state_topic,state,1)
+            logMsg = f'Publishing to GCP (ID {res.mid}) topic {state_topic}: \n' + str(state)
+            add_log(logMsg)    
+        else:
+            logMsg = f'Received state is from unknown device\n' + state
+            add_log(logMsg)
 
     def on_connect(self, unused_client, unused_userdata, unused_flags, rc):
         # Function when device connected
@@ -219,6 +240,38 @@ class mqtt_gcp():
         logMsg = f'Publish to GCP (ID {mid}) successful'
         add_log(logMsg)
 
+    def on_subscribe(self,client, unused_userdata, mid, granted_qos):
+         # Function when subscription request responded
+        add_log('Respond for GCP subscription request ID ' + str(mid) + '\nQoS ' + str(granted_qos[0]))       
+
+    def on_config_msg(self, unused_client, unused_userdata, message):
+        # Function to handle config message from GCP
+        global sampling_freq
+        dev_config = message.topic.split('/')[2]
+        logMsg = f'Received config message on GCP topic {message.topic}\n{message.payload}'
+        for key,val in zip(attachedDev.keys(),attachedDev.values()):
+            if val == dev_config:
+                if key == gw_DEVID:
+                    cfg = json.loads(message.payload.decode('utf-8'))
+                    if 'sampling' in cfg:
+                        sampling_freq = cfg['sampling']
+                        logMsg = logMsg + f'\nDEV001 Sampling changed to {sampling_freq}'
+                        state = {
+                            'devID':key,
+                            'sampling':sampling_freq
+                        }
+                        self.publish_state(key,json.dumps(state))
+                else:
+                    self.local_handler.publish_config(key,message.payload.encode('utf-8'))
+                    logMsg = logMsg + f'\nConfig found for {key}'
+        add_log(logMsg)
+
+    def on_unknown_msg(self, unused_client, unused_userdata, message):
+        # Function when a new publish occured in unknown topic
+        logMsg = "An unknown message from GCP topic " + str(message.topic) + "\n"
+        logMsg = logMsg + str(message.payload)
+        add_log(logMsg)
+
     def stop(self):
         add_log('Stopping GCP client')
         self.client.disconnect()
@@ -235,7 +288,7 @@ class mqtt_local():
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_unknown_msg
         self.client.on_subscribe = self.on_subscribe
-        self.client.message_callback_add(data_topic,self.on_gw1_pub_msg)
+        self.client.message_callback_add(local_data_topic,self.on_gw1_pub_msg)
         add_log('Connection to Local MQTT Initiated')
 
     def connect(self):
@@ -243,8 +296,10 @@ class mqtt_local():
         self.client.connect(local_hostname,local_port)
         add_log('Trying to connect to Local MQTT')
         self.client.loop_start()
-        subs_id = self.client.subscribe(data_topic,1)
-        add_log('Subscription request sent for topic ' + data_topic + ' ID ' + str(subs_id[1]))
+        subs_id = self.client.subscribe(local_data_topic,1)
+        add_log('Local subscription request sent for topic ' + local_data_topic + ' ID ' + str(subs_id[1]))
+        subs_id = self.client.subscribe(local_state_topic,1)
+        add_log('Local subscription request sent for topic ' + local_state_topic + ' ID ' + str(subs_id[1]))
         self.wait_connect()
 
     def wait_connect(self,timeout = 10):
@@ -259,6 +314,13 @@ class mqtt_local():
         else:
             return True
 
+    def publish_config(self,devid,msg):
+        # Function to send device config
+        config_topic = f'{devid}/config'
+        res = self.client.publish(config_topic,msg,1)
+        logMsg = f'Publishing to local network (ID {res.mid}) : \n' + str(msg)
+        add_log(logMsg)
+
     def on_connect(self, unused_client, unused_userdata, unused_flags, rc):
         # Function when device connected
         logMsg = 'Connected to Local MQTT: \n' + error_str(rc) 
@@ -267,7 +329,7 @@ class mqtt_local():
     
     def on_subscribe(self,client, unused_userdata, mid, granted_qos):
         # Function when subscription request responded
-        add_log('Respond for subscription request ID ' + str(mid) + '\nQoS ' + str(granted_qos[0]))
+        add_log('Respond for local MQTT subscription request ID ' + str(mid) + '\nQoS ' + str(granted_qos[0]))
 
     def on_disconnect(self, unused_client, unused_userdata, rc):
         # Function when device disconnected
@@ -275,17 +337,32 @@ class mqtt_local():
         logMsg = 'Disconnected from Local MQTT: \n' + error_str(rc)
         add_log(logMsg)
 
+    def on_publish(self, unused_client, unused_userdata, mid):
+        # Function when receive PUBACK
+        logMsg = f'Publish to local network (ID {mid}) successful'
+        add_log(logMsg)
+
     def on_gw1_pub_msg(self, unused_client, unused_userdata, message):
         # Function when a new publish occured in /gw1/pub
         logMsg = "A new publish on local topic " + str(message.topic) + "\n"
-        logMsg = logMsg + str(message.payload)
+        msg = str(message.payload.decode('utf-8')).replace('\r\n','')
+        logMsg = logMsg + str(message.topic)
         add_log(logMsg)
-        jsonStr = message.payload[2:-1]
-        self.cloud_handler.send_data(jsonStr)
+        self.cloud_handler.send_data(msg)
+
+    def on_state_msg(self, unused_client, unused_userdata, message):
+        state = message.payload.decode('utf-8')
+        statejson = json.loads(state)
+        if 'devID' in statejson:
+            logMsg = f'Received state from local MQTT\n{message.payload}'
+            add_log(logMsg)
+            self.cloud_handler(statejson['devID'],state)
+        else:
+            logMsg = f'Received state without identity\n' + message.payload
 
     def on_unknown_msg(self, unused_client, unused_userdata, message):
         # Function when a new publish occured in unknown topic
-        logMsg = "An unknown message from topic " + str(message.topic) + "\n"
+        logMsg = "An unknown message from local topic " + str(message.topic) + "\n"
         logMsg = logMsg + str(message.payload)
         add_log(logMsg)
 
@@ -307,7 +384,7 @@ def main():
         while True:
             data = ieq.gen_json()
             gcp.send_data(data)
-            time.sleep(5)
+            time.sleep(sampling_freq)
     
     except Exception as er:
         add_log('Program terminated')

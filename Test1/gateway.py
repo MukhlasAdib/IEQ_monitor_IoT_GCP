@@ -26,6 +26,7 @@ attachedDev = {}
 sampling_freq = 15
 live_log = []
 max_live_log = 20
+keep_gcp_connect = False
 
 ### Variables for GCP connection
 gw_private = 'rsa_private.pem'
@@ -148,6 +149,7 @@ class mqtt_gcp():
     def __init__(self):
         self.local_handler = None
         self.isConnect = False
+        self.keepConnect = True
         # Set MQTT Client
         self.client = mqtt.Client(client_id = f'projects/{project_id}/locations/{gcp_region}/registries/{gw_registyID}/devices/{gateway_id}')
         self.client.tls_set(ca_certs=ca_certs, tls_version=ssl.PROTOCOL_TLSv1_2)
@@ -170,6 +172,9 @@ class mqtt_gcp():
         gw_config_topic = f'/devices/{gateway_id}/config'
         subs_id = self.client.subscribe(gw_config_topic,1)
         add_log('GCP subscription request sent for topic ' + gw_config_topic + ' ID ' + str(subs_id[1]))
+        for key,val in zip(attachedDev.keys(),attachedDev.values()):
+            keyName = f'{key}_rsa_private.pem'
+            self.req_attachment(val,dev_keyDir+keyName)
 
     def wait_connect(self,timeout = 10):
         total_time = 0
@@ -265,10 +270,8 @@ class mqtt_gcp():
         self.isConnect = False
         logMsg = 'Disconnected from GCP MQTT: \n' + error_str(rc)
         add_log(logMsg)
-        self.connect()
-        for key,val in zip(attachedDev.keys(),attachedDev.values()):
-            keyName = f'{key}_rsa_private.pem'
-            self.req_attachment(val,dev_keyDir+keyName)
+        if self.keepConnect:
+            self.connect()
 
     def on_publish(self, unused_client, unused_userdata, mid):
         # Function when receive PUBACK
@@ -309,6 +312,7 @@ class mqtt_gcp():
 
     def stop(self):
         add_log('Stopping GCP client')
+        self.keepConnect = False
         self.client.disconnect()
         self.client.loop_stop()
 

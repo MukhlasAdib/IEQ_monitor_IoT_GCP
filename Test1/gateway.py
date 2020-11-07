@@ -7,6 +7,10 @@ import jwt
 import paho.mqtt.client as mqtt
 import json
 import numpy as np
+from http.server import HTTPServer
+from http.server import BaseHTTPRequestHandler
+import urllib.parse
+import pickle
 
 ### Common Variables
 jwt_alg = 'RS256'
@@ -20,6 +24,8 @@ dev_keyDir = 'device_key/'
 dev_metaDir = 'device_list/'
 attachedDev = {}
 sampling_freq = 15
+live_log = []
+max_live_log = 20
 
 ### Variables for GCP connection
 gw_private = 'rsa_private.pem'
@@ -33,8 +39,8 @@ gateway_id = 'tugas_scada_tim7_gwy001'
 ### Variables for Local Connection
 local_hostname = 'localhost'
 local_port = 1883
-local_data_topic = 'gw1/pub'
-local_state_topic = 'gw1/state'
+local_data_topic = 'GWY/data'
+local_state_topic = 'GWY/state'
 
 ### Common functions
 def renew_filename():
@@ -82,6 +88,25 @@ def add_log(msg):
     with open(fname, "a") as f:
         f.write(logStr + '\n')
 
+    live_log.append(logStr + '\n')
+    if len(live_log) > max_live_log:
+        live_log.pop(0)
+    reporting()
+
+def reporting():
+    # Create live report HTML file to handle HTTP request
+    msg = ''
+    msg += 'LIVE REPORT OF ' + GWYID + '\n\n'
+    msg += 'Attached devices:\n'
+    for key,val in zip(attachedDev.keys(),attachedDev.values()):
+        msg += key + ' : ' + val + '\n'
+    msg += '\n'
+    msg += 'Latest log:\n'
+    for i,log in enumerate(live_log):
+        msg += f'[{i+1}] ' + str(log)
+    with open('live_log.txt','w') as f:
+        f.write(msg)
+
 ### IEQ Data generator
 class ieq_sim():
     def __init__(self):
@@ -113,8 +138,7 @@ class ieq_sim():
             'spl': round(self.calc(self.spl_sim),2),
             'date': nowDate,
             'time': nowTime,
-            'devID': gw_DEVID,
-            'gwyID': GWYID 
+            'devID': gw_DEVID
         }
         jsonStr = json.dumps(ieq_dict)
         return jsonStr
@@ -166,10 +190,16 @@ class mqtt_gcp():
             dev_num = jsonData['devID']
             deviceID = self.auth_device(dev_num)
             if deviceID:
+                if not 'date' in jsonData:
+                    jsonData['date'] = datetime.datetime.now().strftime("%Y-%m-%d")
+                if not 'time' in jsonData:
+                    jsonData['time'] = datetime.datetime.now().strftime("%H:%M:%S")
+                jsonData['gwyID'] = GWYID
+                new_data = json.dumps(jsonData)
                 while not self.isConnect: self.connect()
                 sendTopic = f'/devices/{deviceID}/events'
-                res = self.client.publish(sendTopic, data, qos=1)
-                logMsg = f'Publishing to GCP (ID {res.mid}) : \n' + str(data)
+                res = self.client.publish(sendTopic, new_data, qos=1)
+                logMsg = f'Publishing to GCP (ID {res.mid}) : \n' + str(new_data)
                 add_log(logMsg)
             else:
                 add_log('Unknown source\n' + data)
@@ -262,7 +292,7 @@ class mqtt_gcp():
                         }
                         self.publish_state(key,json.dumps(state))
                 else:
-                    self.local_handler.publish_config(key,message.payload.encode('utf-8'))
+                    self.local_handler.publish_config(key,message.payload.decode('utf-8'))
                     logMsg = logMsg + f'\nConfig found for {key}'
         add_log(logMsg)
 
@@ -289,6 +319,7 @@ class mqtt_local():
         self.client.on_message = self.on_unknown_msg
         self.client.on_subscribe = self.on_subscribe
         self.client.message_callback_add(local_data_topic,self.on_gw1_pub_msg)
+        self.client.message_callback_add(local_state_topic,self.on_state_msg)
         add_log('Connection to Local MQTT Initiated')
 
     def connect(self):
@@ -346,7 +377,7 @@ class mqtt_local():
         # Function when a new publish occured in /gw1/pub
         logMsg = "A new publish on local topic " + str(message.topic) + "\n"
         msg = str(message.payload.decode('utf-8')).replace('\r\n','')
-        logMsg = logMsg + str(message.topic)
+        logMsg = logMsg + str(message.payload)
         add_log(logMsg)
         self.cloud_handler.send_data(msg)
 
@@ -356,7 +387,7 @@ class mqtt_local():
         if 'devID' in statejson:
             logMsg = f'Received state from local MQTT\n{message.payload}'
             add_log(logMsg)
-            self.cloud_handler(statejson['devID'],state)
+            self.cloud_handler.publish_state(statejson['devID'],state)
         else:
             logMsg = f'Received state without identity\n' + message.payload
 
@@ -378,6 +409,7 @@ def main():
     gcp.local_handler = loc
     loc.cloud_handler = gcp
     ieq = ieq_sim()
+
     try:
         gcp.connect()
         loc.connect()

@@ -261,9 +261,14 @@ class mqtt_gcp():
     
     def on_disconnect(self, unused_client, unused_userdata, rc):
         # Function when device disconnected
+        global attachedDev
         self.isConnect = False
         logMsg = 'Disconnected from GCP MQTT: \n' + error_str(rc)
         add_log(logMsg)
+        self.connect()
+        for key,val in zip(attachedDev.keys(),attachedDev.values()):
+            keyName = f'{key}_rsa_private.pem'
+            self.req_attachment(val,dev_keyDir+keyName)
 
     def on_publish(self, unused_client, unused_userdata, mid):
         # Function when receive PUBACK

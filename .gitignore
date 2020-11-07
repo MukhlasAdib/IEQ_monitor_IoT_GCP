@@ -1,3 +1,4 @@
 **/*.pem
 **/*_log.txt
 **/*_meta.txt
+debug.log

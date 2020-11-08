@@ -2,7 +2,7 @@
 
 *These codes are made based on Python 3.7*
 
-*These codes have been tested for 24 hours operation. The resulting log files and SQL data for this test can be seen inside `test results/20201107_24hrs`*
+*These codes have been tested for 24 hours operation. The resulting log files and SQL data for this test can be seen inside `testresults/20201107_24hrs`*
 
 *When we say 'device', it means a device that collects the data directly from sensors just like a microprocessor. However, a gateway device like raspberry pi also can be used to collect data. In this case, the raspberry pi will also act as 'device'.*
 

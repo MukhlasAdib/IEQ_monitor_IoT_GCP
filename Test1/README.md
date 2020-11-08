@@ -1,4 +1,4 @@
-# Codes for IoT Monitoring System Using GCP
+# Before You Begin
 
 *These codes are made based on Python 3.7*
 
@@ -7,6 +7,8 @@
 *When we say 'device', it means a device that collect the data directly from sensors just like microprocessor. However, a gateway device like raspberry pi also can be used to collect data. In this case, the raspberry pi will also act as 'device'.*
 
 *Instruction provided here are the steps required to run our codes. For details about how the codes work, you can check the comments written in each code.*
+
+# Prepare Everything
 
 ## Preparing the GCP Services
 
@@ -34,13 +36,13 @@ We are going to test the system with one gateway and two devices. For our case, 
 
 First, create these folders in the same directory as `gateway.py`
 
-- `device_key`
+#### `device_key`
 
 Move all of the public and private key files. Rename the key files to `{DEV001/DEV002}_rsa_{public/public}.pem` (change the `{...}` accordingly). Since we will have two devices and each one has one public and one private key, we will have four files in this folder
 
-- `device_list`
+#### `device_list`
 
-This folder will contains information required to connect your devices to GCP. Create one txt file for each device and name it `{DEV001/DEV002}_meta.txt`. Each file will contains information about the device's GCP ID name written in JSON like this (replace `[GCP_ID]` with your device's GCP ID)
+This folder will contain information required to connect your devices to GCP. Create one txt file for each device and name it `{DEV001/DEV002}_meta.txt`. Each file will contains information about the device's GCP ID name written in JSON like this (replace `[GCP_ID]` with your device's GCP ID)
 
 ```
 {
@@ -48,6 +50,9 @@ This folder will contains information required to connect your devices to GCP. C
 }
 ```
 
+Save the public key and private key of the gateway in the same directory as `gateway.py`, then name them `rsa_public.pem` and `rsa_private.pem` respectively. Also save the google CA TLS certificate `roots.pem` in the same directory.
 
 
+# Testing the System
 
+Under construction

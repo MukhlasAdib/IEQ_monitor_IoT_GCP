@@ -2,11 +2,13 @@
 
 *These codes are made based on Python 3.7*
 
+*These codes have been tested for 24 hours operation*
+
 *When we say 'device', it means a device that collect the data directly from sensors just like microprocessor. However, a gateway device like raspberry pi also can be used to collect data. In this case, the raspberry pi will also act as 'device'.*
 
 *Instruction provided here are the steps required to run our codes. For details about how the codes work, you can check the comments written in each code.*
 
-## GCP
+## Preparing the GCP Services
 
 First of all, you need to prepare some services in GCP. For more details about each service configuration, we recommend you to read the documentation of the service.
 

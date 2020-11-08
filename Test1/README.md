@@ -1,10 +1,10 @@
 # Codes for IoT Monitoring System Using GCP
 
-*These codes are made based on Python 3.7
+*These codes are made based on Python 3.7*
 
-*When we say 'device', it means a device that collect the data directly from sensors just like microprocessor. However, a gateway device like raspberry pi also can be used to collect data. In this case, the raspberry pi will also act as 'device'. 
+*When we say 'device', it means a device that collect the data directly from sensors just like microprocessor. However, a gateway device like raspberry pi also can be used to collect data. In this case, the raspberry pi will also act as 'device'. *
 
-*Instruction provided here are the steps required to run our codes. For details about how the codes work, you can check the comments written in each code.
+*Instruction provided here are the steps required to run our codes. For details about how the codes work, you can check the comments written in each code.*
 
 ## GCP
 

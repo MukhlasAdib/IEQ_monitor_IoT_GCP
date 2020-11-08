@@ -29,8 +29,10 @@ max_live_log = 20
 keep_gcp_connect = False
 
 ### Variables for GCP connection
+with open('projectid.txt','r') as pid:
+    project_id = pid.read()
 gw_private = 'rsa_private.pem'
-project_id = 'tactical-patrol-276605'
+#project_id = 'tactical-patrol-276605'
 gcp_region = 'asia-east1'
 gcp_hostname = 'mqtt.googleapis.com'
 gcp_port = 8883

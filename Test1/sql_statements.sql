@@ -15,6 +15,10 @@ CREATE TABLE ieq_table (
     PRIMARY KEY(Number)
 );
 
+--Extract all data in database
+USE ieq_data;
+SELECT * FROM ieq_table;
+
 --Insert test value
 USE ieq_data;
 INSERT INTO ieq_table (Temperature, RH, Illuminance, Date, Time, DeviceID, GatewayID)

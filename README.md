@@ -8,5 +8,4 @@ As you can see, the system consists of several edge microprocessors that collect
 
 Note that the codes provided here are for protoyping only.
 
-Cheers,
-Mukhlas Adib Rasyidy
+Cheers

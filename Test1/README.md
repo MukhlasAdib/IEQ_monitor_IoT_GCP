@@ -58,7 +58,7 @@ You also need to install mosquitto in your gateway, which is a program that will
 
 # Testing the System
 
-To start the system, first start the local MQTT broker by running mosquitto (click [here])(https://mosquitto.org/download/) to download mosquitto). Then, run the `gateway.py`. By running this program, your gateway will establish connections to both GCP and musquitto. Then, it will generate dummy IEQ data as DEV001 each 15 seconds and send them to GCP. As the `gateway.py` is running, it will automatically create a txt log file inside `log` folder. 
+To start the system, first start the local MQTT broker by running mosquitto (click [here](https://mosquitto.org/download/) to download mosquitto). Then, run the `gateway.py`. By running this program, your gateway will establish connections to both GCP and musquitto. Then, it will generate dummy IEQ data as DEV001 each 15 seconds and send them to GCP. As the `gateway.py` is running, it will automatically create a txt log file inside `log` folder. 
 
 ## Sending data from other device
 

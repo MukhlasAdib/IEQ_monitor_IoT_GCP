@@ -69,7 +69,7 @@ As what we have described, we have another device, DEV002, that will be able to 
 
 ```
 
-Except the `"devID"`, you can omit the other fields as you need. After the gateway receives the message, it will check whether the `devID` has been listed in folder `device_list` and the key is available in `device_key`. Once it has verified the device, it will send the data to GCP.
+Except the `"devID"`, you can omit the other fields as you need. After the gateway receives the message, it will check whether the `devID` has been listed in folder `device_list` and the key is available in `device_key`. Once it has verified the device, the gateway will send the data to GCP.
 
 ## Configuring the device
 

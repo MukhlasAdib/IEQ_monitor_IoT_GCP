@@ -7,10 +7,6 @@ import jwt
 import paho.mqtt.client as mqtt
 import json
 import numpy as np
-from http.server import HTTPServer
-from http.server import BaseHTTPRequestHandler
-import urllib.parse
-import pickle
 
 ### Common Variables
 jwt_alg = 'RS256'

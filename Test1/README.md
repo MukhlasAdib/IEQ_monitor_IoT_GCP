@@ -80,8 +80,8 @@ Note that GCP IoT core provides a configuration function which can be used to co
 
 ```
 
-The message will be sent to the gateway first and then the gateway will forward it to the device. After the device changes its configuration, it will send a state message back to GCP that contains information of the new sampling period. The state message can be seen from IoT Core in the 'CONFIGURATION & STATE' menu of the device's page. The latest configuration message will be automatically sent to the device each thi the device reconnects to the GCP
+The message will be sent to the gateway first and if it is not for the gateway (DEV001), the gateway will forward the message to topic '{devID}/config' (for DEV002, it is DEV002/config). After the device changes its configuration, it will send a state message back to GCP that contains information of the new `sampling` period and `devID` in JSON format. For DEV002, it has to send the state message to topic 'GWY/state' that has been subscribed by the gateway. The state message can be seen from IoT Core in the 'CONFIGURATION & STATE' menu of the device's page. Note that the latest configuration message will be automatically sent to the device each time the device reconnects to the GCP
 
 ## Access the gateway's live Log from local network
 
-To make the gateway information accessible from local, you can start a simple HTTP server by running `web_server.py`. The server can be accessed from the local network by sending a GET request to the gateway's IP with port 8080, or simply type {getewayIP}:8080 in your browser's address bar. The program will read the request and send 20 latest log messages and a list of connected devices as the response.
+To make the gateway information accessible from local, you can start a simple HTTP server by running `web_server.py`. The server can be accessed from the local network by sending a GET request to the gateway's IP address with port 8080, or simply type {getewayIP}:8080 in your browser's address bar. The program will read the request and send 20 latest log messages and a list of connected devices as the response.

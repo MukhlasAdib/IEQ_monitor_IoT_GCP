@@ -1,7 +1,7 @@
 
 --Create new table
 USE ieq_data;
-CREATE TABLE ieq_table (
+CREATE TABLE ieq_table_demo (
     Number INT NOT NULL AUTO_INCREMENT,
     Temperature FLOAT,
     RH FLOAT,

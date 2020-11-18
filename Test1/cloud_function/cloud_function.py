@@ -3,7 +3,7 @@ import json
 import base64
 
 connection_name = ""
-table_name = "ieq_table"
+table_name = "ieq_table_demo1"
 db_name = "tugas_scada_tim7_db1"
 db_user = "root"
 db_password = ""

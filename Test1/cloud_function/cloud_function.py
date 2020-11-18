@@ -4,7 +4,7 @@ import base64
 
 connection_name = ""
 table_name = "ieq_table"
-db_name = "ieq_data"
+db_name = "tugas_scada_tim7_db1"
 db_user = "root"
 db_password = ""
 
@@ -34,10 +34,8 @@ def insert(event,context):
             fieldNames = fieldNames + ',SPL'
             fieldValues = fieldValues + ',' + str(jsonDict['spl'])
         
-        fieldNames = fieldNames + ',Date'
-        fieldValues = fieldValues + ',\'' + str(jsonDict['date']) + '\''
-        fieldNames = fieldNames + ',Time'
-        fieldValues = fieldValues + ',\'' + str(jsonDict['time']) + '\''
+        fieldNames = fieldNames + ',Datetime'
+        fieldValues = fieldValues + ',\'' + str(jsonDict['date']) + ' ' + str(jsonDict['time']) + '\''
 
         fieldNames = fieldNames + ',DeviceID'
         fieldValues = fieldValues + ',\'' + str(jsonDict['devID']) + '\''

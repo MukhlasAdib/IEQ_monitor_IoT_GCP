@@ -8,8 +8,7 @@ CREATE TABLE ieq_table (
     Illuminance FLOAT,
     CO2 FLOAT,
     SPL FLOAT,
-    Date DATE,
-    Time TIME,
+    Datetime DATETIME,
     DeviceID VARCHAR(255), 
     GatewayID VARCHAR(255),
     PRIMARY KEY(Number)

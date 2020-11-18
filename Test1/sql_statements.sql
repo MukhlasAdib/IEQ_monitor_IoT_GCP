@@ -27,3 +27,8 @@ VALUES (25.6,67,278,'2020-10-04','20:43:10','DEV000','GWY000');
 --Delete all records
 USE ieq_data;
 DELETE FROM ieq_table;
+
+--Combine Date and Time to Datetime
+ALTER TABLE ieq_table
+ADD COLUMN Datetime DATETIME AFTER Time;
+UPDATE ieq_table SET Datetime = concat(Date,', ',Time);

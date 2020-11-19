@@ -364,6 +364,7 @@ class mqtt_local():
         self.client.connect(local_hostname,local_port)
         add_log('Trying to connect to Local MQTT')
         self.client.loop_start()
+        time.sleep(3)
         subs_id = self.client.subscribe(local_data_topic,1)
 
         # Subscribe to local data and state topic 
@@ -388,8 +389,8 @@ class mqtt_local():
     def publish_config(self,devid,msg):
         # Function to send device config to the device's config topic
         config_topic = f'{devid}/config'
-        res = self.client.publish(config_topic,msg,1)
-        logMsg = f'Publishing to local network (ID {res.mid}) : \n' + str(msg)
+        res = self.client.publish(config_topic,msg,2)
+        logMsg = f'Publishing to local network {config_topic} (ID {res.mid}) : \n' + str(msg)
         add_log(logMsg)
 
     def on_connect(self, unused_client, unused_userdata, unused_flags, rc):

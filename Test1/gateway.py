@@ -5,7 +5,6 @@ import ssl
 import time
 import jwt
 import paho.mqtt.client as mqtt
-import json
 import numpy as np
 
 ### Common Variables

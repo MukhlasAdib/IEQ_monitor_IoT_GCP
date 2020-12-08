@@ -11,18 +11,13 @@
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <TaskScheduler.h>
+#include <ArduinoJson.h>
 #include "genData.h"
 
 void startCon();
 void mqttCon(int maxTry);
-void callback(char* topic, byte* payload, unsigned int length){
-  Serial.println("----New Message----");
-  Serial.print("channel:");
-  Serial.println(topic);
-  Serial.print("data:");
-  Serial.write(payload,length);
-  Serial.println();
-}
+void callback(char* topic, byte* payload, unsigned int length);
+void publishState(int sampling);
 void uploadData();
 
 const char* ssid = "SCADA_GWY001";
@@ -43,6 +38,7 @@ Scheduler sendLoop;
 
 WiFiClient wificlient;
 PubSubClient client(wificlient);
+DynamicJsonDocument jsonData(1024);
 
 void setup() {
   Serial.begin(9600);
@@ -90,7 +86,7 @@ void startCon(){
     Serial.println(WiFi.subnetMask());
   }
   else {
-    Serial.println("");
+    Serial.println();
     Serial.println("Failed to connect to AP");
   }
 }
@@ -111,12 +107,63 @@ void mqttCon(int maxTry){
   }
 }
 
+void callback(char* topic, byte* payload, unsigned int length){
+  Serial.println();
+  Serial.println("----New Message----");
+  Serial.print("channel:");
+  Serial.println(topic);
+  Serial.print("data:");
+  Serial.write(payload,length);
+  Serial.println();
+
+  DeserializationError jsonError = deserializeJson(jsonData, payload);
+  if (jsonError){
+    Serial.print(F("Failed to deserialize JSON: "));
+    Serial.println(jsonError.f_str());
+  } else if(jsonData["devID"]!=mqttID){
+    Serial.print("Received wrong config: ");
+    const char* msgID = jsonData["devID"];
+    Serial.println(msgID);
+  } else if(!jsonData.containsKey("sampling")){
+    Serial.println("No sampling information");   
+  } else{
+    f_sampling = int(jsonData["sampling"]);
+    f_sampling = f_sampling * 1000;
+    if (f_sampling < 1000){
+      f_sampling = 1000;
+    }
+    publishTask.setInterval(f_sampling);
+    Serial.print("Sampling interval changed to (ms) ");
+    Serial.println(f_sampling);
+  }
+  publishState(f_sampling/1000);
+}
+
+void publishState(int sampling){
+  String msg = "{\"devID\":\"" + mqttID + "\",";
+  msg += "\"sampling\":" + String(sampling) + "}";
+  int str_len = msg.length()+1;
+  char postDataChar[str_len];
+  msg.toCharArray(postDataChar,str_len);
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED){
+    mqttCon(5);
+    client.publish(TOPIC_STATE,postDataChar);
+    Serial.print("Sending to topic ");
+    Serial.println(TOPIC_STATE);
+    Serial.println(msg);
+  } else{
+    Serial.println("Cannot connect to AP");
+  }
+}
+
 void publishData(){
   nowTime = millis()/1000;
   postData = formatData(nowTime, mqttID);
   int str_len = postData.length()+1;
   char postDataChar[str_len];
   postData.toCharArray(postDataChar,str_len);
+  Serial.println();
   if (WiFi.status() == WL_CONNECTED){
     mqttCon(5);
     client.publish(TOPIC_DATA,postDataChar);

@@ -29,7 +29,7 @@ const char* TOPIC_DATA = "GWY/data";
 const char* TOPIC_CONFIG = "DEV002/config";
 const char* TOPIC_STATE = "GWY/state";
 
-int f_sampling = 15000;
+int f_sampling = 900 * 1000;
 String postData;
 int nowTime;
 

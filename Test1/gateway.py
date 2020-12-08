@@ -6,38 +6,44 @@ import time
 import jwt
 import paho.mqtt.client as mqtt
 import numpy as np
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+gwConfig = config['gateway']
+gcpConfig = config['gcp']
 
 ### Common Variables
-jwt_alg = 'RS256'               
-ca_certs = 'roots.pem'          
+jwt_alg = str(gwConfig['jwt_alg'])         
+ca_certs = str(gwConfig['ca_certs'])
+gw_DEVID = str(gwConfig['gw_DEVID'])
+GWYID = str(gwConfig['GWYID'])
+dev_keyDir = str(gwConfig['dev_keyDir'])
+dev_metaDir = str(gwConfig['dev_metaDir'])
+sampling_freq = int(gwConfig['sampling_freq'])
+max_live_log = int(gwConfig['max_live_log'])
+
 fdate = ''
 num = 1
 fname = ''
-gw_DEVID = 'DEV001'
-GWYID = 'GWY001'
-dev_keyDir = 'device_key/'
-dev_metaDir = 'device_list/'
 attachedDev = {}
-sampling_freq = 15
 live_log = []
-max_live_log = 20
 keep_gcp_connect = False
 
 ### Variables for GCP connection
-with open('projectid.txt','r') as pid:
-    project_id = pid.read()
-gw_private = 'rsa_private.pem'
-gcp_region = 'asia-east1'
-gcp_hostname = 'mqtt.googleapis.com'
-gcp_port = 8883
-gw_registyID = 'tugas_scada_tim7_testReg'
-gateway_id = 'tugas_scada_tim7_gwy001'
+project_id = str(gwConfig['project_id'])
+gw_private = str(gwConfig['gw_private'])
+gcp_region = str(gwConfig['gcp_region'])
+gcp_hostname = str(gwConfig['gcp_hostname'])
+gcp_port = int(gwConfig['gcp_port'])
+gw_registyID = str(gwConfig['gw_registryID'])
+gateway_id = str(gwConfig['gateway_id'])
 
 ### Variables for Local MQTT Connection
-local_hostname = 'localhost'
-local_port = 1883
-local_data_topic = 'GWY/data'
-local_state_topic = 'GWY/state'
+local_hostname = str(gwConfig['local_hostname'])
+local_port = int(gwConfig['local_port'])
+local_data_topic = str(gwConfig['local_data_topic'])
+local_state_topic = str(gwConfig['local_state_topic'])
 
 ### Common functions
 def renew_filename():

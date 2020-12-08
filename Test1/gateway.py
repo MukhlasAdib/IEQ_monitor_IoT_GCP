@@ -29,6 +29,7 @@ fname = ''
 attachedDev = {}
 live_log = []
 keep_gcp_connect = False
+LAMP = False
 
 ### Variables for GCP connection
 project_id = str(gcpConfig['project_id'])
@@ -99,8 +100,8 @@ def add_log(msg):
     reporting()
 
 def reporting():
-    # Create live report HTML file to handle HTTP request
-    # The live report includes list of attached devices and last 20 log
+    # Create live report text file to handle HTTP request
+    # The live report includes list of attached devices and last several logs
     # Save it to live_log.txt so it can be accessed by the web server
     msg = ''
     msg += 'LIVE REPORT OF ' + GWYID + '\n\n'
@@ -274,6 +275,12 @@ class mqtt_gcp():
         self.client.message_callback_add(dev_config_topic,self.on_config_msg)
         add_log('GCP subscription request sent for topic ' + dev_config_topic + ' ID ' + str(subs_id[1]))
 
+        # Subscribe to the device's config topic
+        dev_command_topic = f'/devices/{ID}/commands/'
+        subs_id = self.client.subscribe(dev_command_topic+'#',1)
+        self.client.message_callback_add(dev_command_topic,self.on_command_msg)
+        add_log('GCP subscription request sent for topic ' + dev_command_topic + ' ID ' + str(subs_id[1]))
+
     def publish_state(self,num,state):
         # Send state message to GCP in response to config message
         if num in attachedDev:
@@ -322,7 +329,7 @@ class mqtt_gcp():
                     # Change the sampling period
                     if 'sampling' in cfg:
                         sampling_freq = cfg['sampling']
-                        logMsg = logMsg + f'\nDEV001 Sampling changed to {sampling_freq}'
+                        logMsg = logMsg + f'\n{key} Sampling changed to {sampling_freq}'
                         state = {
                             'devID':key,
                             'sampling':sampling_freq
@@ -334,6 +341,29 @@ class mqtt_gcp():
                     self.local_handler.publish_config(key,message.payload.decode('utf-8'))
                     logMsg = logMsg + f'\nConfig found for {key}'
         add_log(logMsg)
+
+    def on_command_msg(self, unused_client, unused_userdata, message):
+        # Function to handle command message from GCP
+        global LAMP
+        dev_config = message.topic.split('/')[2]
+        logMsg = f'Received command message on GCP topic {message.topic}\n{message.payload}'
+        for key,val in zip(attachedDev.keys(),attachedDev.values()):
+            if val == dev_config:
+                # Do the command instruction if the config is for the gateway
+                if key == gw_DEVID:
+                    msg = message.payload.decode('utf-8')
+                    if msg == 'ON':
+                        LAMP = True
+                    elif msg =='OFF':
+                        LAMP = False
+                    else:
+                        logMsg = logMsg + f'\nUnknown command for {key}'
+                    logMsg = logMsg + f'\n{key} lamp status ' + str(LAMP)
+                else:
+                    # Forward the command message to local MQTT if it is not for the gateway
+                    self.local_handler.publish_command(key,message.payload.decode('utf-8'))
+                    logMsg = logMsg + f'\nCommand found for {key}'
+        add_log(logMsg) 
 
     def on_unknown_msg(self, unused_client, unused_userdata, message):
         # Function when a new publish occured in unknown topic
@@ -396,6 +426,13 @@ class mqtt_local():
         config_topic = f'{devid}/config'
         res = self.client.publish(config_topic,msg,2)
         logMsg = f'Publishing to local network {config_topic} (ID {res.mid}) : \n' + str(msg)
+        add_log(logMsg)
+
+    def publish_command(self,devid,msg):
+        # Function to send device command to the device's command topic
+        command_topic = f'{devid}/commands'
+        res = self.client.publish(command_topic,msg,2)
+        logMsg = f'Publishing to local network {command_topic} (ID {res.mid}) : \n' + str(msg)
         add_log(logMsg)
 
     def on_connect(self, unused_client, unused_userdata, unused_flags, rc):

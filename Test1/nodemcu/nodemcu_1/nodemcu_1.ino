@@ -29,7 +29,7 @@ const char* TOPIC_DATA = "GWY/data";
 const char* TOPIC_CONFIG = "DEV002/config";
 const char* TOPIC_STATE = "GWY/state";
 
-int f_sampling = 900 * 1000;
+int f_sampling = 15 * 1000;
 String postData;
 int nowTime;
 
@@ -120,10 +120,6 @@ void callback(char* topic, byte* payload, unsigned int length){
   if (jsonError){
     Serial.print(F("Failed to deserialize JSON: "));
     Serial.println(jsonError.f_str());
-  } else if(jsonData["devID"]!=mqttID){
-    Serial.print("Received wrong config: ");
-    const char* msgID = jsonData["devID"];
-    Serial.println(msgID);
   } else if(!jsonData.containsKey("sampling")){
     Serial.println("No sampling information");   
   } else{

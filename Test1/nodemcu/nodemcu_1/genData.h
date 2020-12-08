@@ -13,20 +13,20 @@ float calcIEQ(int timeSec, float minVal, float maxVal, float noiseFactor);
 String formatData(int nowTime, String devID);
 
 float f = 2 * 3.14 * 1/86400; 
-float temp_minVal = 23;
-float temp_maxVal = 30;
+float temp_minVal = 20;
+float temp_maxVal = 28;
 float temp_noise = 0.01;
-float rh_minVal = 50;
-float rh_maxVal = 80;
+float rh_minVal = 60;
+float rh_maxVal = 75;
 float rh_noise = 0.025;
-float lux_minVal = 200;
-float lux_maxVal = 300;
+float lux_minVal = 180;
+float lux_maxVal = 250;
 float lux_noise = 0.05;
-float co2_minVal = 250;
-float co2_maxVal = 500;
+float co2_minVal = 300;
+float co2_maxVal = 700;
 float co2_noise = 0.1;
-float spl_minVal = 25;
-float spl_maxVal = 45;
+float spl_minVal = 20;
+float spl_maxVal = 40;
 float spl_noise = 0.05;
 
 float calcIEQ(int timeSec, float minVal, float maxVal, float noiseFactor){

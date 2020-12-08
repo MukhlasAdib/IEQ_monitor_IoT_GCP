@@ -31,13 +31,13 @@ live_log = []
 keep_gcp_connect = False
 
 ### Variables for GCP connection
-project_id = str(gwConfig['project_id'])
-gw_private = str(gwConfig['gw_private'])
-gcp_region = str(gwConfig['gcp_region'])
-gcp_hostname = str(gwConfig['gcp_hostname'])
-gcp_port = int(gwConfig['gcp_port'])
-gw_registyID = str(gwConfig['gw_registryID'])
-gateway_id = str(gwConfig['gateway_id'])
+project_id = str(gcpConfig['project_id'])
+gw_private = str(gcpConfig['gw_private'])
+gcp_region = str(gcpConfig['gcp_region'])
+gcp_hostname = str(gcpConfig['gcp_hostname'])
+gcp_port = int(gcpConfig['gcp_port'])
+gw_registryID = str(gcpConfig['gw_registryID'])
+gateway_id = str(gcpConfig['gateway_id'])
 
 ### Variables for Local MQTT Connection
 local_hostname = str(gwConfig['local_hostname'])
@@ -160,7 +160,7 @@ class mqtt_gcp():
         self.keepConnect = True
 
         # Set GCP MQTT Client
-        self.client = mqtt.Client(client_id = f'projects/{project_id}/locations/{gcp_region}/registries/{gw_registyID}/devices/{gateway_id}')
+        self.client = mqtt.Client(client_id = f'projects/{project_id}/locations/{gcp_region}/registries/{gw_registryID}/devices/{gateway_id}')
         self.client.tls_set(ca_certs=ca_certs, tls_version=ssl.PROTOCOL_TLSv1_2)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect

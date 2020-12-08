@@ -1,12 +1,17 @@
 import sqlalchemy
 import json
 import base64
+import configparser
 
-connection_name = ""
-table_name = "ieq_table_demo1"
-db_name = "tugas_scada_tim7_db1"
-db_user = "root"
-db_password = ""
+config = configparser.ConfigParser()
+config.read('config.ini')
+cfg = config['main']
+
+connection_name = str(cfg['connection_name']) 
+table_name = str(cfg['table_name'])
+db_name = str(cfg['db_name'])
+db_user = str(cfg['db_user'])
+db_password = str(cfg['db_password'])
 
 driver_name = 'mysql+pymysql'
 query_string = dict({"unix_socket": "/cloudsql/{}".format(connection_name)})

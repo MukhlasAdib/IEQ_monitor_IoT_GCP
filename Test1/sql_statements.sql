@@ -1,6 +1,6 @@
 
---Create new table
-USE ieq_data;
+--Create new table main data
+USE tugas_scada_tim7_db1;
 CREATE TABLE ieq_table_demo (
     Number INT NOT NULL AUTO_INCREMENT,
     Temperature FLOAT,
@@ -13,6 +13,27 @@ CREATE TABLE ieq_table_demo (
     GatewayID VARCHAR(255),
     PRIMARY KEY(Number)
 );
+
+--Create new table lamp data
+USE tugas_scada_tim7_db1;
+CREATE TABLE ieq_table_lamp(
+    Number INT NOT NULL AUTO_INCREMENT,
+    DeviceID VARCHAR(255),
+    Lamp BOOLEAN,
+    Datetime DATETIME,
+    PRIMARY KEY(Number)
+);
+
+--Insert lamp data
+USE tugas_scada_tim7_db1;
+INSERT INTO ieq_table_lamp (DeviceID, Lamp, Datetime)
+VALUES ('DEV003',0,SYSDATE());
+
+--Update lamp data
+USE tugas_scada_tim7_db1;
+UPDATE ieq_table_lamp
+SET Lamp = 1
+WHERE DeviceID = 'DEV003';
 
 --Extract all data in database
 USE ieq_data;

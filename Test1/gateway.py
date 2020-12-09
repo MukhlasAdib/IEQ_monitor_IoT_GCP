@@ -276,10 +276,10 @@ class mqtt_gcp():
         add_log('GCP subscription request sent for topic ' + dev_config_topic + ' ID ' + str(subs_id[1]))
 
         # Subscribe to the device's config topic
-        dev_command_topic = f'/devices/{ID}/commands/'
-        subs_id = self.client.subscribe(dev_command_topic+'#',1)
+        dev_command_topic = f'/devices/{ID}/commands'
+        subs_id = self.client.subscribe(dev_command_topic+'/#',1)
         self.client.message_callback_add(dev_command_topic,self.on_command_msg)
-        add_log('GCP subscription request sent for topic ' + dev_command_topic + ' ID ' + str(subs_id[1]))
+        add_log('GCP subscription request sent for topic ' + dev_command_topic + '/# ID ' + str(subs_id[1]))
 
     def publish_state(self,num,state):
         # Send state message to GCP in response to config message
@@ -358,7 +358,15 @@ class mqtt_gcp():
                         LAMP = False
                     else:
                         logMsg = logMsg + f'\nUnknown command for {key}'
-                    logMsg = logMsg + f'\n{key} lamp status ' + str(LAMP)
+                    if LAMP: lstat = 'ON' 
+                    else: lstat = 'OFF'
+                    logMsg = logMsg + f'\n{key} lamp status ' + str(lstat)
+                    light_dict = {
+                        "devID":str(key),
+                        "lamp":int(LAMP)
+                    }
+                    self.send_data(json.dumps(light_dict))
+                    
                 else:
                     # Forward the command message to local MQTT if it is not for the gateway
                     self.local_handler.publish_command(key,message.payload.decode('utf-8'))

@@ -17,19 +17,29 @@
 void startCon();
 void mqttCon(int maxTry);
 void callback(char* topic, byte* payload, unsigned int length);
+void callback_command(byte* payload, unsigned int length);
+void callback_config(byte* payload, unsigned int length);
 void publishState(int sampling);
+void publishLamp();
 void uploadData();
 
 const char* ssid = "SCADA_GWY001";
 const char* password = "123sampai8";
-String mqttID = "DEV002";
 const char* mqtt_server = "192.168.200.1";
+
+//const char* ssid = "HUAWEI-5F2s";
+//const char* password = "h6rW7xrR";
+//const char* mqtt_server = "192.168.100.4";
+
 const int mqtt_port = 1883;
+String mqttID = "DEV002";
 const char* TOPIC_DATA = "GWY/data";
 const char* TOPIC_CONFIG = "DEV002/config";
+const char* TOPIC_COMMAND = "DEV002/commands";
 const char* TOPIC_STATE = "GWY/state";
 
 int f_sampling = 15 * 1000;
+bool lamp = false;
 String postData;
 int nowTime;
 
@@ -43,6 +53,8 @@ DynamicJsonDocument jsonData(1024);
 void setup() {
   Serial.begin(9600);
   delay(10000);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
   startCon();
 
   client.setServer(mqtt_server, mqtt_port);
@@ -99,6 +111,7 @@ void mqttCon(int maxTry){
       Serial.println("connected");
       delay(1000);
       client.subscribe(TOPIC_CONFIG);
+      client.subscribe(TOPIC_COMMAND);
     }else{
       Serial.println("Failed to connect");
       delay(5000); 
@@ -115,7 +128,39 @@ void callback(char* topic, byte* payload, unsigned int length){
   Serial.print("data:");
   Serial.write(payload,length);
   Serial.println();
+  
+  if(strcmp(topic, TOPIC_CONFIG) == 0){
+    callback_config(payload,length);
+  }
+  
+  else if(strcmp(topic, TOPIC_COMMAND) == 0){
+    callback_command(payload,length);
+  }
+}
 
+void callback_command(byte* payload, unsigned int length){
+  String msg_light;
+  for (int i = 0; i < length; i++) {
+    msg_light += (char)payload[i];
+  }
+  
+  if(msg_light=="ON"){
+    lamp = true;
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.println("LED turned on");
+  }
+  else if(msg_light=="OFF"){
+    lamp = false;
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println("LED turned off");
+  }
+  else{
+    Serial.println("Unknown command");
+  }
+  publishLamp();
+}
+  
+void callback_config(byte* payload, unsigned int length){
   DeserializationError jsonError = deserializeJson(jsonData, payload);
   if (jsonError){
     Serial.print(F("Failed to deserialize JSON: "));
@@ -147,6 +192,30 @@ void publishState(int sampling){
     client.publish(TOPIC_STATE,postDataChar);
     Serial.print("Sending to topic ");
     Serial.println(TOPIC_STATE);
+    Serial.println(msg);
+  } else{
+    Serial.println("Cannot connect to AP");
+  }
+}
+
+void publishLamp(){
+  int ledstat;
+  if(lamp){
+    ledstat = 1;
+  }else{
+    ledstat = 0;
+  }
+  String msg = "{\"devID\":\"" + mqttID + "\",";
+  msg += "\"lamp\":" + String(ledstat) + "}";
+  int str_len = msg.length()+1;
+  char postDataChar[str_len];
+  msg.toCharArray(postDataChar,str_len);
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED){
+    mqttCon(5);
+    client.publish(TOPIC_DATA,postDataChar);
+    Serial.print("Sending to topic ");
+    Serial.println(TOPIC_DATA);
     Serial.println(msg);
   } else{
     Serial.println("Cannot connect to AP");

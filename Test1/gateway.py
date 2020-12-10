@@ -45,6 +45,7 @@ local_hostname = str(gwConfig['local_hostname'])
 local_port = int(gwConfig['local_port'])
 local_data_topic = str(gwConfig['local_data_topic'])
 local_state_topic = str(gwConfig['local_state_topic'])
+internal_topic = str(gwConfig['internal_topic'])
 
 ### Common functions
 def renew_filename():
@@ -400,6 +401,7 @@ class mqtt_local():
         self.client.on_subscribe = self.on_subscribe
         self.client.message_callback_add(local_data_topic,self.on_gw1_pub_msg)
         self.client.message_callback_add(local_state_topic,self.on_state_msg)
+        self.client.message_callback_add(internal_topic,self.on_internal_msg)
         add_log('Connection to Local MQTT Initiated')
 
     def connect(self):
@@ -408,12 +410,13 @@ class mqtt_local():
         add_log('Trying to connect to Local MQTT')
         self.client.loop_start()
         time.sleep(3)
+        # Subscribe to inernal, local data and state topic 
         subs_id = self.client.subscribe(local_data_topic,1)
-
-        # Subscribe to local data and state topic 
         add_log('Local subscription request sent for topic ' + local_data_topic + ' ID ' + str(subs_id[1]))
         subs_id = self.client.subscribe(local_state_topic,1)
         add_log('Local subscription request sent for topic ' + local_state_topic + ' ID ' + str(subs_id[1]))
+        subs_id = self.client.subscribe(internal_topic,1)
+        add_log('Local subscription request sent for topic ' + internal_topic + ' ID ' + str(subs_id[1]))
         self.wait_connect()
 
     def wait_connect(self,timeout = 10):
@@ -485,6 +488,39 @@ class mqtt_local():
             self.cloud_handler.publish_state(statejson['devID'],state)
         else:
             logMsg = f'Received state without identity\n' + message.payload
+
+    def on_internal_msg(self, unused_client, unused_userdata, message):
+        # Function to handle command message from GCP
+        global LAMP
+        msgd = json.loads(message.payload.decode('utf-8'))
+        dev_config = msgd['devID']
+        print(dev_config)
+        logMsg = f'Received command message on local topic {message.topic}\n{message.payload}'
+        for key,val in zip(attachedDev.keys(),attachedDev.values()):
+            if key == dev_config:
+                # Do the command instruction if the config is for the gateway
+                if key == gw_DEVID:
+                    msg = msgd['light']
+                    if msg == 'ON':
+                        LAMP = True
+                    elif msg =='OFF':
+                        LAMP = False
+                    else:
+                        logMsg = logMsg + f'\nUnknown command for {key}'
+                    if LAMP: lstat = 'ON' 
+                    else: lstat = 'OFF'
+                    logMsg = logMsg + f'\n{key} lamp status ' + str(lstat)
+                    light_dict = {
+                        "devID":str(key),
+                        "lamp":int(LAMP)
+                    }
+                    self.cloud_handler.send_data(json.dumps(light_dict))
+                    
+                else:
+                    # Forward the command message to local MQTT if it is not for the gateway
+                    self.publish_command(key,msg)
+                    logMsg = logMsg + f'\nCommand found for {key}'
+        add_log(logMsg)         
 
     def on_unknown_msg(self, unused_client, unused_userdata, message):
         # Function when a new publish occured in unknown topic

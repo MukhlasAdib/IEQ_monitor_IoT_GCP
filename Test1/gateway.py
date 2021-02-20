@@ -518,7 +518,7 @@ class mqtt_local():
                     
                 else:
                     # Forward the command message to local MQTT if it is not for the gateway
-                    self.publish_command(key,msg)
+                    self.publish_command(key,msg['light'])
                     logMsg = logMsg + f'\nCommand found for {key}'
         add_log(logMsg)         
 

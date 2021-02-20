@@ -1,11 +1,5 @@
-//NodaA
-//Upload IEQ data to User Server 
-//Ganti ssid dan password pada /apconfig
-//Task scheduler
-//Parameters: Suhu, RH, Iluminansi, Lmax, Ltot, CO2
-//Pengukuran Latensi
-//Akses untuk cek status pada /
-//include ota pada /update
+//Upload IEQ data to Gateway 
+//Parameters: Suhu, RH, Iluminansi, SPL, CO2
 
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -26,10 +20,6 @@ void uploadData();
 const char* ssid = "SCADA_GWY001";
 const char* password = "123sampai8";
 const char* mqtt_server = "192.168.200.1";
-
-//const char* ssid = "HUAWEI-5F2s";
-//const char* password = "h6rW7xrR";
-//const char* mqtt_server = "192.168.100.4";
 
 const int mqtt_port = 1883;
 String mqttID = "DEV002";
@@ -112,6 +102,7 @@ void mqttCon(int maxTry){
       delay(1000);
       client.subscribe(TOPIC_CONFIG);
       client.subscribe(TOPIC_COMMAND);
+      delay(5000);
     }else{
       Serial.println("Failed to connect");
       delay(5000); 
